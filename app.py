@@ -1,28 +1,30 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 import pickle
 
-# Load model
+# ---------------- LOAD MODEL ----------------
 model = pickle.load(open("model.pkl", "rb"))
+
+st.set_page_config(page_title="CVD Risk Predictor", layout="centered")
 
 st.title("❤️ AI-Based Cardiovascular Risk Prediction")
 st.write("Enter patient details below:")
 
-# -------- INPUTS --------
-age = st.number_input("Age", 18, 100)
+# ---------------- INPUTS ----------------
+age = st.number_input("Age", 18, 100, step=1)
 gender = st.selectbox("Gender", ["Male", "Female"])
 bmi = st.number_input("BMI", 10.0, 50.0)
-systolic_bp = st.number_input("Systolic BP", 50, 300)
+systolic_bp = st.number_input("Systolic Blood Pressure", 80, 200)
 
-diabetes = st.selectbox("Diabetes", ["Yes", "No"])
-smoking = st.selectbox("Smoking", ["Yes", "No"])
-hypertension = st.selectbox("Hypertension", ["Yes", "No"])
+diabetes = st.selectbox("Diabetes", ["No", "Yes"])
+smoking = st.selectbox("Smoking", ["No", "Yes"])
+hypertension = st.selectbox("Hypertension", ["No", "Yes"])
 
-# -------- PREDICTION --------
+# ---------------- PREDICTION ----------------
 if st.button("Predict Risk"):
 
     try:
+        # Create input dataframe
         input_data = pd.DataFrame({
             'Age': [age],
             'Gender': [1 if gender == "Male" else 0],
@@ -33,7 +35,7 @@ if st.button("Predict Risk"):
             'Hypertension': [1 if hypertension == "Yes" else 0]
         })
 
-        # Fix feature mismatch
+        # ---------------- HANDLE FEATURE MISMATCH ----------------
         if hasattr(model, "feature_names_in_"):
             for col in model.feature_names_in_:
                 if col not in input_data.columns:
@@ -41,9 +43,13 @@ if st.button("Predict Risk"):
 
             input_data = input_data[model.feature_names_in_]
 
-        prediction = model.predict(input_data)[0]
+        # ---------------- PREDICT ----------------
+        if hasattr(model, "predict_proba"):
+            prediction = model.predict_proba(input_data)[0][1] * 100
+        else:
+            prediction = model.predict(input_data)[0]
 
-        # -------- CATEGORY --------
+        # ---------------- CATEGORY ----------------
         if prediction < 10:
             category = "🟢 Low Risk"
         elif prediction < 20:
@@ -54,54 +60,58 @@ if st.button("Predict Risk"):
         st.success(f"Predicted Risk Score: {prediction:.2f}%")
         st.success(f"Risk Category: {category}")
 
-        # -------- FACTOR CONTRIBUTION --------
+        # ---------------- FACTORS ----------------
         st.subheader("🔍 Key Contributing Factors")
 
         factors = []
 
         if age > 50:
-            factors.append("Higher age increases cardiovascular risk")
+            factors.append("Age > 50 → higher cardiovascular strain")
 
         if bmi > 25:
-            factors.append("High BMI (overweight/obesity) increases risk")
+            factors.append("BMI > 25 → overweight/obesity risk")
 
         if systolic_bp > 140:
-            factors.append("High blood pressure significantly increases risk")
+            factors.append("Systolic BP > 140 → hypertension risk")
 
         if diabetes == "Yes":
-            factors.append("Diabetes is a major risk factor for CVD")
+            factors.append("Diabetes → damages blood vessels")
 
         if smoking == "Yes":
-            factors.append("Smoking damages blood vessels and increases risk")
+            factors.append("Smoking → reduces oxygen & damages arteries")
 
         if hypertension == "Yes":
-            factors.append("Hypertension contributes to heart disease")
+            factors.append("Existing hypertension → increases heart load")
 
-        if len(factors) == 0:
-            st.write("No major risk factors detected")
-
-        else:
+        if factors:
             for f in factors:
                 st.write("•", f)
+        else:
+            st.write("No major contributing factors detected")
 
-        # -------- WHY (INTERPRETATION) --------
+        # ---------------- WHY ----------------
         st.subheader("🧠 Why this prediction?")
+        st.info("""
+This prediction is generated using an AI model trained on cardiovascular risk factors.
 
-        st.write("""
-        The model analyzes multiple clinical parameters such as age, BMI,
-        blood pressure, and comorbidities. Higher values in these factors
-        increase the probability of cardiovascular disease.
+Risk increases when:
+- Age increases
+- BMI is high
+- Blood pressure is elevated
+- Lifestyle risks (smoking, diabetes) are present
+
+The model combines all these factors to estimate overall cardiovascular risk.
         """)
 
-        # -------- RANGES --------
-        st.subheader("📊 Risk Classification Range")
+        # ---------------- RISK RANGES ----------------
+        st.subheader("📊 Risk Classification")
 
-        st.write("""
-        - 🟢 Low Risk: 0% – 10%
-        - 🟡 Moderate Risk: 10% – 20%
-        - 🔴 High Risk: > 20%
+        st.markdown("""
+- 🟢 **Low Risk:** 0 – 10%  
+- 🟡 **Moderate Risk:** 10 – 20%  
+- 🔴 **High Risk:** > 20%  
         """)
 
     except Exception as e:
-        st.error("Prediction failed")
+        st.error("❌ Prediction failed")
         st.write(e)
