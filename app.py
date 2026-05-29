@@ -161,12 +161,9 @@ if st.button("Predict Risk"):
         # ---------------- SHAP EXPLAINABILITY ----------------
         st.write("## 🔍 AI Explanation (SHAP)")
 
-        try:
-            explainer = shap.Explainer(model)
-        except:
-            explainer = shap.TreeExplainer(model)
-
-        shap_values = explainer(input_data)
+  
+            explainer = shap.Explainer(model.predict, imput_data)
+                shap_values = explainer(input_data)
 
         st.write("### Individual Prediction Breakdown")
 
