@@ -143,6 +143,7 @@ if st.button("Predict Risk"):
         - Normal: <120/80
         - Elevated: 120–139 / 80–89
         - High: ≥140/90
+        """)   
 
  # ---------------- SHAP EXPLAINABILITY ----------------
         st.write("## 🔍 AI Explanation (SHAP)")
