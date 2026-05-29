@@ -86,7 +86,7 @@ if st.button("Predict Risk"):
         except:
             prob = float(pred)
 
-        # CATEGORY
+        # ---------------- CATEGORY ----------------
         if prob < 10:
             category = "🟢 Low Risk"
         elif prob < 20:
@@ -104,31 +104,22 @@ if st.button("Predict Risk"):
 
         if age > 55:
             factors.append("Older age increases CVD risk")
-
         if bmi > 30:
             factors.append("Obesity (High BMI)")
-
         if sbp > 140 or dbp > 90:
             factors.append("High Blood Pressure")
-
         if hypertension == 1:
             factors.append("Existing Hypertension")
-
         if diabetes == 1:
             factors.append("Diabetes")
-
         if ckd == 1:
             factors.append("Chronic Kidney Disease")
-
         if af == 1:
             factors.append("Atrial Fibrillation")
-
         if smoking == 1:
             factors.append("Smoking habit")
-
         if family_history == 1:
             factors.append("Family History of CVD")
-
         if covid_severity >= 2:
             factors.append("Severe COVID history")
 
@@ -140,7 +131,6 @@ if st.button("Predict Risk"):
 
         # ---------------- RANGES ----------------
         st.write("### 📈 Clinical Risk Ranges")
-
         st.info("""
         Age:
         - Low: < 40
@@ -158,54 +148,61 @@ if st.button("Predict Risk"):
         - High: ≥140/90
         """)
 
-    # ---------------- CREATE EXPLAINER ----------------
-    try:
-        explainer = shap.Explainer(model, input_data)
-        shap_values = explainer(input_data)
+        # ================= SHAP =================
+        st.write("## 🔍 AI Explanation (SHAP)")
 
-        values = shap_values.values[0]
-        base_values = shap_values.base_values[0]
+        try:
+            # Ensure DataFrame
+            if not isinstance(input_data, pd.DataFrame):
+                input_data = pd.DataFrame(input_data)
 
-    except Exception:
-        # Fallback for tree models (RF, XGBoost, etc.)
-        explainer = shap.TreeExplainer(model)
-        shap_vals = explainer.shap_values(input_data)
+            # -------- EXPLAINER --------
+            try:
+                explainer = shap.Explainer(model, input_data)
+                shap_values = explainer(input_data)
 
-        if isinstance(shap_vals, list):  # classification
-            values = shap_vals[1][0]
-            base_values = explainer.expected_value[1]
-        else:  # regression
-            values = shap_vals[0]
-            base_values = explainer.expected_value
+                values = shap_values.values[0]
+                base_values = shap_values.base_values[0]
 
-    # ---------------- CREATE EXPLANATION OBJECT ----------------
-    explanation = shap.Explanation(
-        values=values,
-        base_values=base_values,
-        data=input_data.iloc[0],
-        feature_names=input_data.columns.tolist()
-    )
+            except:
+                explainer = shap.TreeExplainer(model)
+                shap_vals = explainer.shap_values(input_data)
 
-    # ---------------- WATERFALL PLOT ----------------
-    st.write("### 📊 Feature Contribution")
+                if isinstance(shap_vals, list):
+                    values = shap_vals[1][0]
+                    base_values = explainer.expected_value[1]
+                else:
+                    values = shap_vals[0]
+                    base_values = explainer.expected_value
 
-    fig1, ax1 = plt.subplots()
-    shap.plots.waterfall(explanation, show=False)
-    st.pyplot(fig1)
-    plt.close(fig1)
+            # -------- EXPLANATION --------
+            explanation = shap.Explanation(
+                values=values,
+                base_values=base_values,
+                data=input_data.iloc[0],
+                feature_names=input_data.columns.tolist()
+            )
 
-    # ---------------- BAR PLOT ----------------
-    st.write("### 🔝 Feature Importance")
+            # -------- WATERFALL --------
+            st.write("### 📊 Feature Contribution")
+            fig1, ax1 = plt.subplots()
+            shap.plots.waterfall(explanation, show=False)
+            st.pyplot(fig1)
+            plt.close(fig1)
 
-    fig2, ax2 = plt.subplots()
-    shap.plots.bar(explanation, show=False)
-    st.pyplot(fig2)
-    plt.close(fig2)
+            # -------- BAR --------
+            st.write("### 🔝 Feature Importance")
+            fig2, ax2 = plt.subplots()
+            shap.plots.bar(explanation, show=False)
+            st.pyplot(fig2)
+            plt.close(fig2)
 
-except Exception as e:
-    st.warning(f"⚠️ SHAP explanation not available: {e}")
+        except Exception as e:
+            st.warning(f"⚠️ SHAP explanation not available: {e}")
 
-    # ✅ Safe fallback
-    st.write("### 📌 Input Summary")
-    for col, val in zip(input_data.columns, input_data.iloc[0]):
-        st.write(f"**{col}**: {val}")
+            st.write("### 📌 Input Summary")
+            for col, val in zip(input_data.columns, input_data.iloc[0]):
+                st.write(f"**{col}**: {val}")
+
+    except Exception as e:
+        st.error(f"❌ Prediction Error: {e}")
