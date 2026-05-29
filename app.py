@@ -43,6 +43,12 @@ smoking = st.selectbox("Smoking Status", [0, 1])
 
 # COVID Related
 covid = st.selectbox("COVID History", [0, 1])
+if covid == 1:
+   covid_year = st.number_input("COVID Year", 2000,2026)
+   covid_severity = st.selectbox("COVID Severity", [1,2,3])
+else:
+   covid_year = 0
+   covid_severity = 0
 vaccination = st.selectbox("Vaccination Status", [0, 1])
 
 # ---------------- DATAFRAME ----------------
@@ -52,7 +58,8 @@ input_data = pd.DataFrame([[
     hypertension, diabetes, ckd,
     ra, af, migraine, smi, sle,
     ed, family_history, smoking,
-    covid, vaccination
+    covid, vaccination,
+    0,0,0  
 ]], columns=[
     'Age', 'Gender', 'Height_cm', 'Weight_kg', 'BMI',
     'Systolic_BP', 'Diastolic_BP',
