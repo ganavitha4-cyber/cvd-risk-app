@@ -51,7 +51,7 @@ input_data = pd.DataFrame([[
     sbp, dbp,
     hypertension, diabetes, ckd,
     ra, af, migraine, smi, sle,
-    ed, family, smoking,
+    ed, family_history, smoking,
     covid, vaccination
 ]], columns=[
     'Age', 'Gender', 'Height_cm', 'Weight_kg', 'BMI',
