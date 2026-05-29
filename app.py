@@ -158,17 +158,6 @@ if st.button("Predict Risk"):
         - High: ≥140/90
         """)
 
-               # ---------------- SHAP EXPLANATION ----------------
-st.write("## 🔍 AI Explanation (SHAP)")
-
-try:
-    import shap
-    import matplotlib.pyplot as plt
-
-    # ✅ Ensure input is DataFrame with correct column names
-    if not isinstance(input_data, pd.DataFrame):
-        input_data = pd.DataFrame(input_data, columns=feature_names)
-
     # ---------------- CREATE EXPLAINER ----------------
     try:
         explainer = shap.Explainer(model, input_data)
