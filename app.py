@@ -62,7 +62,8 @@ input_data = pd.DataFrame([[
     hypertension, diabetes, ckd,
     ra, af, migraine, smi, sle,
     ed, family_history, smoking,
-    covid, covid_year, covid_severity, vaccination
+    covid, covid_year, covid_severity, vaccination,
+0
 ]], columns=[
     'Age', 'Gender', 'Height_cm', 'Weight_kg', 'BMI',
     'Systolic_BP', 'Diastolic_BP',
@@ -71,7 +72,8 @@ input_data = pd.DataFrame([[
     'Migraine', 'Severe_Mental_Illness', 'SLE',
     'Erectile_Dysfunction', 'Family_Hx_CVD',
     'Smoking_Status', 'COVID_Hx', 'COVID_Year',
-    'COVID_Severity', 'Vaccination_Status'
+    'COVID_Severity', 'Vaccination_Status',
+    'Extra1'
 ])
 
 # ---------------- PREDICT ----------------
