@@ -158,33 +158,65 @@ if st.button("Predict Risk"):
         - High: ≥140/90
         """)
 
-                # ---------------- SHAP EXPLAINABILITY ----------------
-        st.write("## 🔍 AI Explanation (SHAP)")
+               # ---------------- SHAP EXPLANATION ----------------
+st.write("## 🔍 AI Explanation (SHAP)")
 
-        try:
-            explainer = shap.Explainer(model.predict, input_data)
-            shap_values = explainer(input_data)
+try:
+    import shap
+    import matplotlib.pyplot as plt
 
-            st.write("### Individual Prediction Breakdown")
+    # ✅ Ensure input is DataFrame with correct column names
+    if not isinstance(input_data, pd.DataFrame):
+        input_data = pd.DataFrame(input_data, columns=feature_names)
 
-            fig, ax = plt.subplots()
-            shap.plots.waterfall(shap_values[0], show=False)
-            st.pyplot(fig)
+    # ---------------- CREATE EXPLAINER ----------------
+    try:
+        explainer = shap.Explainer(model, input_data)
+        shap_values = explainer(input_data)
 
-            st.write("### 🔑 Most Influential Features")
+        values = shap_values.values[0]
+        base_values = shap_values.base_values[0]
 
-            shap_df = pd.DataFrame({
-                "Feature": input_data.columns,
-                "Impact": shap_values.values[0]
-            })
+    except Exception:
+        # Fallback for tree models (RF, XGBoost, etc.)
+        explainer = shap.TreeExplainer(model)
+        shap_vals = explainer.shap_values(input_data)
 
-            shap_df["AbsImpact"] = np.abs(shap_df["Impact"])
-            shap_df = shap_df.sort_values(by="AbsImpact", ascending=False)
+        if isinstance(shap_vals, list):  # classification
+            values = shap_vals[1][0]
+            base_values = explainer.expected_value[1]
+        else:  # regression
+            values = shap_vals[0]
+            base_values = explainer.expected_value
 
-            for i in range(min(5, len(shap_df))):
-                row = shap_df.iloc[i]
-                direction = "increases" if row["Impact"] > 0 else "decreases"
-                st.write(f"• {row['Feature']} **{direction}** your risk")
+    # ---------------- CREATE EXPLANATION OBJECT ----------------
+    explanation = shap.Explanation(
+        values=values,
+        base_values=base_values,
+        data=input_data.iloc[0],
+        feature_names=input_data.columns.tolist()
+    )
 
-        except Exception as e:
-            st.warning(f"SHAP explanation not available: {e}")
+    # ---------------- WATERFALL PLOT ----------------
+    st.write("### 📊 Feature Contribution")
+
+    fig1, ax1 = plt.subplots()
+    shap.plots.waterfall(explanation, show=False)
+    st.pyplot(fig1)
+    plt.close(fig1)
+
+    # ---------------- BAR PLOT ----------------
+    st.write("### 🔝 Feature Importance")
+
+    fig2, ax2 = plt.subplots()
+    shap.plots.bar(explanation, show=False)
+    st.pyplot(fig2)
+    plt.close(fig2)
+
+except Exception as e:
+    st.warning(f"⚠️ SHAP explanation not available: {e}")
+
+    # ✅ Safe fallback
+    st.write("### 📌 Input Summary")
+    for col, val in zip(input_data.columns, input_data.iloc[0]):
+        st.write(f"**{col}**: {val}")
