@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import pickle
+import shap
+import matplotlib.pyplot as plt
 
 # ---------------- LOAD MODEL ----------------
 model = pickle.load(open("model.pkl", "rb"))
@@ -21,7 +23,7 @@ height = st.number_input("Height (cm)", 100, 220)
 weight = st.number_input("Weight (kg)", 30, 200)
 
 # BMI auto
-bmi = weight / ((height/100) ** 2)
+bmi = weight / ((height / 100) ** 2)
 
 sbp = st.number_input("Systolic BP", 80, 200)
 dbp = st.number_input("Diastolic BP", 50, 150)
@@ -43,12 +45,14 @@ smoking = st.selectbox("Smoking Status", [0, 1])
 
 # COVID Related
 covid = st.selectbox("COVID History", [0, 1])
+
 if covid == 1:
-   covid_year = st.number_input("COVID Year", 2000,2026)
-   covid_severity = st.selectbox("COVID Severity", [1,2,3])
+    covid_year = st.number_input("COVID Year", 2000, 2026)
+    covid_severity = st.selectbox("COVID Severity", [1, 2, 3])
 else:
-   covid_year = 0
-   covid_severity = 0
+    covid_year = 0
+    covid_severity = 0
+
 vaccination = st.selectbox("Vaccination Status", [0, 1])
 
 # ---------------- DATAFRAME ----------------
@@ -58,8 +62,7 @@ input_data = pd.DataFrame([[
     hypertension, diabetes, ckd,
     ra, af, migraine, smi, sle,
     ed, family_history, smoking,
-    covid, vaccination,
-    0,0,0  
+    covid, covid_year, covid_severity, vaccination
 ]], columns=[
     'Age', 'Gender', 'Height_cm', 'Weight_kg', 'BMI',
     'Systolic_BP', 'Diastolic_BP',
@@ -67,7 +70,8 @@ input_data = pd.DataFrame([[
     'Rheumatoid_Arthritis', 'Atrial_Fibrillation',
     'Migraine', 'Severe_Mental_Illness', 'SLE',
     'Erectile_Dysfunction', 'Family_Hx_CVD',
-    'Smoking_Status', 'COVID_Hx', 'Vaccination_Status'
+    'Smoking_Status', 'COVID_Hx', 'COVID_Year',
+    'COVID_Severity', 'Vaccination_Status'
 ])
 
 # ---------------- PREDICT ----------------
@@ -80,7 +84,7 @@ if st.button("Predict Risk"):
         except:
             prob = float(pred)
 
-        # ---------------- CATEGORY ----------------
+        # CATEGORY
         if prob < 10:
             category = "🟢 Low Risk"
         elif prob < 20:
@@ -120,7 +124,7 @@ if st.button("Predict Risk"):
         if smoking == 1:
             factors.append("Smoking habit")
 
-        if family == 1:
+        if family_history == 1:
             factors.append("Family History of CVD")
 
         if covid_severity >= 2:
@@ -150,12 +154,11 @@ if st.button("Predict Risk"):
         - Normal: <120/80
         - Elevated: 120–139 / 80–89
         - High: ≥140/90
-        """)   
+        """)
 
- # ---------------- SHAP EXPLAINABILITY ----------------
+        # ---------------- SHAP EXPLAINABILITY ----------------
         st.write("## 🔍 AI Explanation (SHAP)")
 
-        # Create explainer
         try:
             explainer = shap.Explainer(model)
         except:
@@ -163,7 +166,6 @@ if st.button("Predict Risk"):
 
         shap_values = explainer(input_data)
 
-        # Plot SHAP waterfall
         st.write("### Individual Prediction Breakdown")
 
         fig, ax = plt.subplots()
@@ -181,7 +183,7 @@ if st.button("Predict Risk"):
         shap_df["AbsImpact"] = np.abs(shap_df["Impact"])
         shap_df = shap_df.sort_values(by="AbsImpact", ascending=False)
 
-        for i in range(5):
+        for i in range(min(5, len(shap_df))):
             row = shap_df.iloc[i]
             direction = "increases" if row["Impact"] > 0 else "decreases"
             st.write(f"• {row['Feature']} **{direction}** your risk")
