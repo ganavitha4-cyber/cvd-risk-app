@@ -36,7 +36,7 @@ migraine = st.selectbox("Migraine", [0, 1])
 smi = st.selectbox("Severe Mental Illness", [0, 1])
 sle = st.selectbox("SLE", [0, 1])
 ed = st.selectbox("Erectile Dysfunction", [0, 1])
-family history = st.selectbox("Family History of CVD", [0, 1])
+family_history = st.selectbox("Family History of CVD", [0, 1])
 
 # Lifestyle
 smoking = st.selectbox("Smoking Status", [0, 1])
