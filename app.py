@@ -162,7 +162,7 @@ if st.button("Predict Risk"):
         st.write("## 🔍 AI Explanation (SHAP)")
 
   
-            explainer = shap.Explainer(model.predict, imput_data)
+            explainer = shap.Explainer(model.predict, input_data)
                 shap_values = explainer(input_data)
 
         st.write("### Individual Prediction Breakdown")
