@@ -1,159 +1,182 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import pickle
 
 # ---------------- LOAD MODEL ----------------
 model = pickle.load(open("model.pkl", "rb"))
 
+st.set_page_config(page_title="CVD Risk Prediction", layout="centered")
+
 st.title("❤️ AI-Based Cardiovascular Risk Prediction")
-st.write("Enter patient details below:")
+st.write("Enter patient details based on clinical data:")
 
 # ---------------- INPUTS ----------------
 age = st.number_input("Age", 18, 100)
+
 gender = st.selectbox("Gender", ["Male", "Female"])
+gender = 1 if gender == "Male" else 0
 
 height = st.number_input("Height (cm)", 100, 220)
-weight = st.number_input("Weight (kg)", 30, 150)
-bmi = st.number_input("BMI", 10.0, 50.0)
+weight = st.number_input("Weight (kg)", 30, 200)
 
-systolic_bp = st.number_input("Systolic BP", 80, 200)
-diastolic_bp = st.number_input("Diastolic BP", 50, 130)
+# BMI auto
+bmi = weight / ((height/100) ** 2)
 
-htn = st.selectbox("Hypertension (HTN)", ["No", "Yes"])
-diabetes = st.selectbox("Diabetes", ["No", "Yes"])
-ckd = st.selectbox("Chronic Kidney Disease", ["No", "Yes"])
+sbp = st.number_input("Systolic BP", 80, 200)
+dbp = st.number_input("Diastolic BP", 50, 150)
 
-ra = st.selectbox("Rheumatoid Arthritis", ["No", "Yes"])
-af = st.selectbox("Atrial Fibrillation", ["No", "Yes"])
-migraine = st.selectbox("Migraine", ["No", "Yes"])
-mental = st.selectbox("Severe Mental Illness", ["No", "Yes"])
-sle = st.selectbox("SLE", ["No", "Yes"])
-ed = st.selectbox("Erectile Dysfunction", ["No", "Yes"])
+# Clinical Conditions
+hypertension = st.selectbox("Hypertension", [0, 1])
+diabetes = st.selectbox("Diabetes", [0, 1])
+ckd = st.selectbox("Chronic Kidney Disease", [0, 1])
+ra = st.selectbox("Rheumatoid Arthritis", [0, 1])
+af = st.selectbox("Atrial Fibrillation", [0, 1])
+migraine = st.selectbox("Migraine", [0, 1])
+smi = st.selectbox("Severe Mental Illness", [0, 1])
+sle = st.selectbox("SLE", [0, 1])
+ed = st.selectbox("Erectile Dysfunction", [0, 1])
+family history = st.selectbox("Family History of CVD", [0, 1])
 
-family = st.selectbox("Family History of CVD", ["No", "Yes"])
-smoking = st.selectbox("Smoking Status", ["No", "Yes"])
+# Lifestyle
+smoking = st.selectbox("Smoking Status", [0, 1])
 
-covid = st.selectbox("COVID History", ["No", "Yes"])
-covid_year = st.number_input("COVID Year", 2019, 2025)
-covid_severity = st.selectbox("COVID Severity", ["Mild", "Moderate", "Severe"])
+# COVID Related
+covid = st.selectbox("COVID History", [0, 1])
+vaccination = st.selectbox("Vaccination Status", [0, 1])
 
-vaccine = st.selectbox("Vaccination Status", ["No", "Yes"])
+# ---------------- DATAFRAME ----------------
+input_data = pd.DataFrame([[
+    age, gender, height, weight, bmi,
+    sbp, dbp,
+    hypertension, diabetes, ckd,
+    ra, af, migraine, smi, sle,
+    ed, family, smoking,
+    covid, vaccination
+]], columns=[
+    'Age', 'Gender', 'Height_cm', 'Weight_kg', 'BMI',
+    'Systolic_BP', 'Diastolic_BP',
+    'Hypertension', 'Diabetes', 'CKD',
+    'Rheumatoid_Arthritis', 'Atrial_Fibrillation',
+    'Migraine', 'Severe_Mental_Illness', 'SLE',
+    'Erectile_Dysfunction', 'Family_Hx_CVD',
+    'Smoking_Status', 'COVID_Hx', 'Vaccination_Status'
+])
 
 # ---------------- PREDICT ----------------
 if st.button("Predict Risk"):
     try:
-        input_data = pd.DataFrame({
+        pred = model.predict(input_data)[0]
 
-            'age': [age],
-            'gender': [1 if gender == "Male" else 0],
-            'height_cm': [height],
-            'weight_kg': [weight],
-            'BMI': [bmi],
-
-            'systolic_bp': [systolic_bp],
-            'diastolic_bp': [diastolic_bp],
-
-            'HTN': [1 if htn == "Yes" else 0],
-            'Diabetes': [1 if diabetes == "Yes" else 0],
-            'CKD': [1 if ckd == "Yes" else 0],
-
-            'Rheumatoid_Arthritis': [1 if ra == "Yes" else 0],
-            'Atrial_fibrillation': [1 if af == "Yes" else 0],
-            'Migraine': [1 if migraine == "Yes" else 0],
-            'Severe_mental_illness': [1 if mental == "Yes" else 0],
-            'SLE': [1 if sle == "Yes" else 0],
-            'Erectile_dysfunction': [1 if ed == "Yes" else 0],
-
-            'Family_Hx_CVD': [1 if family == "Yes" else 0],
-            'Smoking_Status': [1 if smoking == "Yes" else 0],
-
-            'COVID_Hx': [1 if covid == "Yes" else 0],
-            'COVID_Year': [covid_year],
-
-            'Vaccination_Status': [1 if vaccine == "Yes" else 0]
-        })
-
-        # Encode COVID severity
-        input_data['COVID_Severity_Moderate'] = 1 if covid_severity == "Moderate" else 0
-        input_data['COVID_Severity_Severe'] = 1 if covid_severity == "Severe" else 0
-
-        # ❗ IMPORTANT: match training feature order (edit if needed)
-        feature_order = model.feature_names_in_
-        input_data = input_data.reindex(columns=feature_order, fill_value=0)
-
-        # ---------------- PREDICT ----------------
-        prediction = model.predict(input_data)[0]
-
-        # Fix scale
-        if prediction <= 1:
-            prediction *= 100
+        try:
+            prob = model.predict_proba(input_data)[0][1] * 100
+        except:
+            prob = float(pred)
 
         # ---------------- CATEGORY ----------------
-        if prediction < 10:
+        if prob < 10:
             category = "🟢 Low Risk"
-            range_text = "0–10%"
-        elif prediction < 20:
+        elif prob < 20:
             category = "🟡 Moderate Risk"
-            range_text = "10–20%"
         else:
             category = "🔴 High Risk"
-            range_text = ">20%"
 
-        st.success(f"Predicted Risk Score: {prediction:.2f}%")
-        st.success(f"Risk Category: {category}")
-        st.info(f"Category Range: {range_text}")
+        st.subheader(f"Risk Score: {prob:.2f}%")
+        st.subheader(f"Category: {category}")
 
-        # ---------------- FACTORS ----------------
-        st.subheader("🔍 Contributing Factors")
+        # ---------------- CONTRIBUTING FACTORS ----------------
+        st.write("### 📊 Key Contributing Factors")
 
         factors = []
 
-        if age > 50:
-            factors.append("Age > 50 → arteries stiffen")
+        if age > 55:
+            factors.append("Older age increases CVD risk")
 
-        if bmi > 25:
-            factors.append("BMI > 25 → obesity risk")
+        if bmi > 30:
+            factors.append("Obesity (High BMI)")
 
-        if systolic_bp > 140 or diastolic_bp > 90:
-            factors.append("High BP → damages arteries")
+        if sbp > 140 or dbp > 90:
+            factors.append("High Blood Pressure")
 
-        if htn == "Yes":
-            factors.append("Hypertension → chronic pressure load")
+        if hypertension == 1:
+            factors.append("Existing Hypertension")
 
-        if diabetes == "Yes":
-            factors.append("Diabetes → vascular damage")
+        if diabetes == 1:
+            factors.append("Diabetes")
 
-        if ckd == "Yes":
-            factors.append("CKD → heart-kidney link")
+        if ckd == 1:
+            factors.append("Chronic Kidney Disease")
 
-        if smoking == "Yes":
-            factors.append("Smoking → artery damage")
+        if af == 1:
+            factors.append("Atrial Fibrillation")
 
-        if family == "Yes":
-            factors.append("Family history → genetic risk")
+        if smoking == 1:
+            factors.append("Smoking habit")
 
-        if covid == "Yes" and covid_severity == "Severe":
-            factors.append("Severe COVID → long-term cardiac effect")
+        if family == 1:
+            factors.append("Family History of CVD")
 
-        if factors:
-            for f in factors:
-                st.write("•", f)
+        if covid_severity >= 2:
+            factors.append("Severe COVID history")
+
+        if len(factors) == 0:
+            st.success("No major contributing risk factors")
         else:
-            st.write("No major contributing factors")
+            for f in factors:
+                st.warning(f)
 
-        # ---------------- WHY ----------------
-        st.subheader("🧠 Why this prediction?")
+        # ---------------- RANGES ----------------
+        st.write("### 📈 Clinical Risk Ranges")
+
         st.info("""
-This AI model evaluates multiple clinical and lifestyle factors.
+        Age:
+        - Low: < 40
+        - Moderate: 40–55
+        - High: > 55
 
-Risk increases with:
-- Age, BP, BMI
-- Chronic diseases
-- Lifestyle risks (smoking)
-- Genetic predisposition
+        BMI:
+        - Normal: 18.5–24.9
+        - Overweight: 25–29.9
+        - Obese: ≥30
 
-The final score is a combined effect of all these inputs.
-""")
+        Blood Pressure:
+        - Normal: <120/80
+        - Elevated: 120–139 / 80–89
+        - High: ≥140/90
+
+ # ---------------- SHAP EXPLAINABILITY ----------------
+        st.write("## 🔍 AI Explanation (SHAP)")
+
+        # Create explainer
+        try:
+            explainer = shap.Explainer(model)
+        except:
+            explainer = shap.TreeExplainer(model)
+
+        shap_values = explainer(input_data)
+
+        # Plot SHAP waterfall
+        st.write("### Individual Prediction Breakdown")
+
+        fig, ax = plt.subplots()
+        shap.plots.waterfall(shap_values[0], show=False)
+        st.pyplot(fig)
+
+        # Top features
+        st.write("### 🔑 Most Influential Features")
+
+        shap_df = pd.DataFrame({
+            "Feature": input_data.columns,
+            "Impact": shap_values.values[0]
+        })
+
+        shap_df["AbsImpact"] = np.abs(shap_df["Impact"])
+        shap_df = shap_df.sort_values(by="AbsImpact", ascending=False)
+
+        for i in range(5):
+            row = shap_df.iloc[i]
+            direction = "increases" if row["Impact"] > 0 else "decreases"
+            st.write(f"• {row['Feature']} **{direction}** your risk")
 
     except Exception as e:
-        st.error(f"Error: {e}")
+        st.error(f"Prediction failed: {e}")
