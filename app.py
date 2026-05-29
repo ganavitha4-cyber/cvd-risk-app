@@ -158,34 +158,33 @@ if st.button("Predict Risk"):
         - High: ≥140/90
         """)
 
-        # ---------------- SHAP EXPLAINABILITY ----------------
+                # ---------------- SHAP EXPLAINABILITY ----------------
         st.write("## 🔍 AI Explanation (SHAP)")
 
-  
+        try:
             explainer = shap.Explainer(model.predict, input_data)
-                shap_values = explainer(input_data)
+            shap_values = explainer(input_data)
 
-        st.write("### Individual Prediction Breakdown")
+            st.write("### Individual Prediction Breakdown")
 
-        fig, ax = plt.subplots()
-        shap.plots.waterfall(shap_values[0], show=False)
-        st.pyplot(fig)
+            fig, ax = plt.subplots()
+            shap.plots.waterfall(shap_values[0], show=False)
+            st.pyplot(fig)
 
-        # Top features
-        st.write("### 🔑 Most Influential Features")
+            st.write("### 🔑 Most Influential Features")
 
-        shap_df = pd.DataFrame({
-            "Feature": input_data.columns,
-            "Impact": shap_values.values[0]
-        })
+            shap_df = pd.DataFrame({
+                "Feature": input_data.columns,
+                "Impact": shap_values.values[0]
+            })
 
-        shap_df["AbsImpact"] = np.abs(shap_df["Impact"])
-        shap_df = shap_df.sort_values(by="AbsImpact", ascending=False)
+            shap_df["AbsImpact"] = np.abs(shap_df["Impact"])
+            shap_df = shap_df.sort_values(by="AbsImpact", ascending=False)
 
-        for i in range(min(5, len(shap_df))):
-            row = shap_df.iloc[i]
-            direction = "increases" if row["Impact"] > 0 else "decreases"
-            st.write(f"• {row['Feature']} **{direction}** your risk")
+            for i in range(min(5, len(shap_df))):
+                row = shap_df.iloc[i]
+                direction = "increases" if row["Impact"] > 0 else "decreases"
+                st.write(f"• {row['Feature']} **{direction}** your risk")
 
-    except Exception as e:
-        st.error(f"Prediction failed: {e}")
+        except Exception as e:
+            st.warning(f"SHAP explanation not available: {e}")
